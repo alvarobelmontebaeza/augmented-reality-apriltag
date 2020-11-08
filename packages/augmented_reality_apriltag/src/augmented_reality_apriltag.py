@@ -64,6 +64,24 @@ class ARNode(DTROS):
 
         # Detect apriltags
         detections = self.at_detector.detect(gray_image, True, cam_params, tag_size=0.065)
+
+        # Render model in image
+        rendered_image = image
+        for tag in detections:
+            R = np.array(tag.pose_R).reshape((3,3))
+            t = np.array(tag.pose_t).reshape((3,1))
+            H = np.concatenate((R,t),axis=1)
+
+            # Obtain homography
+            projection_matrix = self.projection_matrix(K, H)
+
+            # Render the model
+            rendered_image = self.renderer.render(rendered_image, projection_matrix)
+        
+        # Publish image with models rendered
+        augmented_image = self.bridge.cv2_to_compressed_imgmsg(rendered_image)
+        self.augmented_pub.publish(augmented_image) 
+
         
 
 
@@ -86,9 +104,7 @@ class ARNode(DTROS):
             that maps the camera reference frame to the AprilTag reference frame.
         """
 
-        #
-        # Write your code here
-        #
+        return np.matmul(intrinsic,homography)
 
     def readImage(self, msg_image):
         """
