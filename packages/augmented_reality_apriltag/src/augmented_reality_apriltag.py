@@ -48,6 +48,9 @@ class ARNode(DTROS):
         # Create AprilTag detector object
         self.at_detector = Detector()
 
+        # Create cv_bridge
+        self.bridge = CvBridge()
+
         # Define subscriber to recieve images
         self.image_sub = rospy.Subscriber('/' + self.veh+ '/camera_node/image/compressed', CompressedImage, self.callback)
         # Publish the rendered image to a new topic
