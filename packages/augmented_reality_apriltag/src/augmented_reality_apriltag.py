@@ -4,12 +4,13 @@ import os
 import math
 import cv2
 from renderClass import Renderer
+from dt_apriltags import Detector
 
 import rospy
 import yaml
 import sys
 from duckietown.dtros import DTROS, NodeType
-from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import CompressedImage, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 
 import rospkg 
@@ -31,14 +32,51 @@ class ARNode(DTROS):
         super(ARNode, self).__init__(node_name=node_name,node_type=NodeType.GENERIC)
         self.veh = rospy.get_namespace().strip("/")
 
+        # Load calibration files
+        self.calib_data = self.readYamlFile('/data/config/calibrations/camera_intrinsic/' + self.veh + '.yaml')
+        self.log('Loaded intrinsics calibration file')
+        self.extrinsics = self.readYamlFile('/data/config/calibrations/camera_extrinsic/' + self.veh + '.yaml')
+        self.log('Loaded extrinsics calibration file') 
+
+        # Retrieve intrinsic info
+        self.cam_info = self.setCamInfo(self.calib_data)
+
         rospack = rospkg.RosPack()
         # Initialize an instance of Renderer giving the model in input.
         self.renderer = Renderer(rospack.get_path('augmented_reality_apriltag') + '/src/models/duckie.obj')
 
-        #
-        #   Write your code here
-        #
+        # Create AprilTag detector object
+        self.at_detector = Detector()
 
+        # Define subscriber to recieve images
+        self.image_sub = rospy.Subscriber('/' + self.veh+ '/camera_node/image/compressed', CompressedImage, self.callback)
+        # Publish the rendered image to a new topic
+        self.augmented_pub = rospy.Publisher('~/image/compressed' , CompressedImage, queue_size=1)
+
+    def callback(self, ros_image):
+        # Convert to cv2 image
+        image = self.readImage(ros_image)
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # Extract camera parameters
+        K = np.array(self.cam_info.K).reshape((3,3))
+        cam_params = (K[0,0], K[1,1], K[0,2], K[1,2])
+
+        # Detect apriltags
+        detections = self.at_detector.detect(gray_image, True, cam_params, tag_size=0.065)
+        
+
+
+    def setCamInfo(self, calib_data):
+        cam_info = CameraInfo()
+        cam_info.width = calib_data['image_width']
+        cam_info.height = calib_data['image_height']
+        cam_info.K = calib_data['camera_matrix']['data']
+        cam_info.D = calib_data['distortion_coefficients']['data']
+        cam_info.R = calib_data['rectification_matrix']['data']
+        cam_info.P = calib_data['projection_matrix']['data']
+        cam_info.distortion_model = calib_data['distortion_model']
+        return cam_info  
 
 
     
