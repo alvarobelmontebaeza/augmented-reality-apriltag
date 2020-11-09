@@ -44,7 +44,7 @@ class ARNode(DTROS):
         rospack = rospkg.RosPack()
         # Initialize an instance of Renderer giving the model in input.
         self.renderer = Renderer(rospack.get_path('augmented_reality_apriltag') + '/src/models/duckie.obj')
-
+        self.log('Renderer object created')
         # Create AprilTag detector object
         self.at_detector = Detector()
 
@@ -54,7 +54,8 @@ class ARNode(DTROS):
         # Define subscriber to recieve images
         self.image_sub = rospy.Subscriber('/' + self.veh+ '/camera_node/image/compressed', CompressedImage, self.callback)
         # Publish the rendered image to a new topic
-        self.augmented_pub = rospy.Publisher('~/image/compressed' , CompressedImage, queue_size=1)
+        self.augmented_pub = rospy.Publisher('~image/compressed' , CompressedImage, queue_size=1)
+        self.log(node_name + ' initialized and running')
 
     def callback(self, ros_image):
         # Convert to cv2 image
@@ -71,9 +72,9 @@ class ARNode(DTROS):
         # Render model in image
         rendered_image = image
         for tag in detections:
-            R = np.array(tag.pose_R).reshape((3,3))
-            t = np.array(tag.pose_t).reshape((3,1))
-            H = np.concatenate((R,t),axis=1)
+            R = np.array(tag.pose_R)
+            t = np.array(tag.pose_t)
+            H = tag.homography           
 
             # Obtain homography
             projection_matrix = self.projection_matrix(K, H)
@@ -106,8 +107,17 @@ class ARNode(DTROS):
             Write here the compuatation for the projection matrix, namely the matrix
             that maps the camera reference frame to the AprilTag reference frame.
         """
+        K = intrinsic
+        K_inv = np.linalg.inv(K)
+        H = homography
+        Rt = K_inv * H
+        R1 = np.array(Rt[:,0]).reshape((3,1))
+        R2 = np.array(Rt[:,1]).reshape((3,1))
+        R3 = np.array(np.cross(Rt[:,0],Rt[:,1])).reshape((3,1))
+        t = np.array(Rt[:,2]).reshape((3,1))
+        P = np.concatenate((R1,R2,R3,t),axis=1)
 
-        return np.matmul(intrinsic,homography)
+        return P
 
     def readImage(self, msg_image):
         """
