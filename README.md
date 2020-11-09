@@ -1,28 +1,27 @@
-# Template: CRA1
+# AUGMENTED-REALITY-apriltag
 
-This template provides a boilerplate repository
-for developing CRA1 exercise.
+This package provides the functionality of rendering a 3D model on a detected Apriltag
 
+## Instructions
 
-## How to use it
+### 1) Clone the repository
 
-### 1. Fork this repository
+git clone https://github.com/alvarobelmontebaeza/augmented-reality-apriltag
 
-Use the fork button in the top-right corner of the github page to fork this template repository.
+### 2) Move into the root diretory of the repository
 
+### 2) Build the package in your Duckiebot
 
-### 2. Create a new repository
+dts devel build -f -H  HOSTNAME.local
 
-Create a new repository on github.com while
-specifying the newly forked template repository as
-a template for your new repository.
+### 4) Run the node
 
+dts devel run -H HOSTNAME.local
 
-### 3. Place your code
+### 5) In another terminal, open rqt_image_view and select the correct topic to visualize the AR image
 
-Edit the code in `augmented_reality_apriltag.py` the augmented_reality_apriltag package.
+dts start_gui_tools HOSTNAME
 
+rqt_image_view
 
-### 5. Try your code
-
-Build and run your code using `dts devel` or `docker` commands.
+### 6) Enjoy!
