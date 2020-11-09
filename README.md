@@ -1,4 +1,4 @@
-# AUGMENTED-REALITY-apriltag
+# AUGMENTED-REALITY-APRILTAG
 
 This package provides the functionality of rendering a 3D model on a detected Apriltag
 
