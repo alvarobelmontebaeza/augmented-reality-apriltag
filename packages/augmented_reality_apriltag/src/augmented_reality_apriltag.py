@@ -72,9 +72,8 @@ class ARNode(DTROS):
         # Render model in image
         rendered_image = image
         for tag in detections:
-            R = np.array(tag.pose_R)
-            t = np.array(tag.pose_t)
-            H = tag.homography           
+            # Extract homography
+            H = np.array(tag.homography).reshape((3,3))           
 
             # Obtain homography
             projection_matrix = self.projection_matrix(K, H)
@@ -107,15 +106,24 @@ class ARNode(DTROS):
             Write here the compuatation for the projection matrix, namely the matrix
             that maps the camera reference frame to the AprilTag reference frame.
         """
+        # Extract parameters
         K = intrinsic
         K_inv = np.linalg.inv(K)
         H = homography
-        Rt = K_inv * H
+        # Compute 2D Rt matrix
+        Rt = K_inv @ H
+        Rt = Rt / np.linalg.norm(Rt[:,0])
+        # Extract rotation vectors
         R1 = np.array(Rt[:,0]).reshape((3,1))
         R2 = np.array(Rt[:,1]).reshape((3,1))
+        # Compute third rotation vector to be orthogonal to the other two
         R3 = np.array(np.cross(Rt[:,0],Rt[:,1])).reshape((3,1))
+        R = np.concatenate((R1,R2,R3),axis=1)
+        U, S, Vt = np.linalg.svd(R)
+        R = U @ Vt
         t = np.array(Rt[:,2]).reshape((3,1))
-        P = np.concatenate((R1,R2,R3,t),axis=1)
+        # Compute projection matrix
+        P = K @ (np.concatenate((R,t),axis=1))
 
         return P
 
